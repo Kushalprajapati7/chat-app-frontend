@@ -1,7 +1,6 @@
 import { Component, OnDestroy, OnInit } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
-
-import { ToastrService } from 'ngx-toastr';
+import { AlertService } from 'src/app/_shared/alert/alert.service';
 import { AuthService } from 'src/app/core/services/auth.service';
 import { SocketService } from 'src/app/core/services/socket.service';
 import { UserService } from 'src/app/core/services/user.service';
@@ -28,14 +27,14 @@ export class JistiMeetComponent implements OnInit, OnDestroy {
     private router: Router,
     private authService: AuthService,
     private userService: UserService,
-    private toastr: ToastrService,
+    private alertService: AlertService,
     private socketService: SocketService
 
   ) { }
 
   ngOnInit(): void {
     this.roomName = this.route.snapshot.params['groupId'];
-    this.callInitiatorId = this.route.snapshot.queryParams['initiatorId']; 
+    this.callInitiatorId = this.route.snapshot.queryParams['initiatorId'];
     this.initializeConference();
   }
 
@@ -50,7 +49,7 @@ export class JistiMeetComponent implements OnInit, OnDestroy {
       this.loading = false;
     } catch (error) {
       console.error('Error initializing conference:', error);
-      this.toastr.error(`Conference initialization failed: ${error.message || 'Unknown error'}`, ``, { timeOut: 2000 });
+      this.alertService.error(`Conference initialization failed: ${error || 'Unknown error'}`);
       this.error = 'Failed to initialize video conference';
       this.loading = false;
       this.router.navigate(['/chat'], { replaceUrl: true });
@@ -165,16 +164,16 @@ export class JistiMeetComponent implements OnInit, OnDestroy {
 
   private leaveCall(): void {
     const localUserId = this.authService.getLoggedInUser()?._id;
-  
+
     if (localUserId === this.callInitiatorId && !this.callEndedMessageSent) {
       this.callEndedMessageSent = true;
       this.sendCallEndedMessage();
     }
-  
+
     this.cleanUp();
     this.router.navigate(['/chat'], { replaceUrl: true });
   }
-  
+
 
   private onParticipantJoined(data: any): void {
     this.participantCount++;
@@ -184,13 +183,13 @@ export class JistiMeetComponent implements OnInit, OnDestroy {
 
   private onParticipantLeft(data: any): void {
     console.log('Participant left:', data);
-  
+
     setTimeout(() => {
       const participants = this.api.getParticipantsInfo();
-  
+
       if (participants.length === 1) {
         const localUserId = this.authService.getLoggedInUser()?._id;
-  
+
         if (localUserId === this.callInitiatorId && !this.callEndedMessageSent) {
           this.callEndedMessageSent = true;
           this.sendCallEndedMessage();
@@ -198,7 +197,7 @@ export class JistiMeetComponent implements OnInit, OnDestroy {
       }
     }, 1000);
   }
-  
+
 
   private onConferenceJoined(data: any): void {
     this.participantCount = this.api.getParticipantsInfo()?.length || 1;

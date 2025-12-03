@@ -1,11 +1,11 @@
 import { Component, ElementRef, OnDestroy, OnInit, ViewChild } from '@angular/core';
 import { AuthService } from '../../core/services/auth.service';
 import { SocketService } from '../../core/services/socket.service';
-import { ToastrService } from 'ngx-toastr';
 import { ActivatedRoute, Router } from '@angular/router';
 import { UserService } from '../../core/services/user.service';
 import { takeUntil } from 'rxjs/operators';
 import { Subject } from 'rxjs';
+import { AlertService } from 'src/app/_shared/alert/alert.service';
 
 @Component({
   selector: 'app-video-call',
@@ -40,9 +40,9 @@ export class VideoCallComponent implements OnInit, OnDestroy {
   private screenStream: MediaStream | null = null;
   private mediaRecorder!: MediaRecorder;
   private recordedChunks: Blob[] = [];
-  
+
   private destroy$ = new Subject<void>();
-  
+
   private servers = {
     iceServers: [
       { urls: 'stun:stun.l.google.com:19302' },
@@ -70,11 +70,11 @@ export class VideoCallComponent implements OnInit, OnDestroy {
       }
     ]
   };
-  
+
   constructor(
     public authService: AuthService,
     private socketService: SocketService,
-    private toastr: ToastrService,
+    private alertService: AlertService,
     private route: ActivatedRoute,
     private router: Router,
     private userService: UserService,
@@ -99,7 +99,7 @@ export class VideoCallComponent implements OnInit, OnDestroy {
     this.socketService.onCallEnded()
       .pipe(takeUntil(this.destroy$))
       .subscribe(() => {
-        this.toastr.info('Call ended by the other participant', '', { timeOut: 2000 });
+        this.alertService.info('Call ended by the other participant');
         this.cleanUpCall();
         this.router.navigate(['/chat'], { replaceUrl: true });
       });
@@ -128,7 +128,7 @@ export class VideoCallComponent implements OnInit, OnDestroy {
         this.remoteUserName = user.data.username;
       },
       error: (error) => {
-        this.toastr.error(`Failed to load local user info: ${error.message || 'Unknown error'}`, ``, { timeOut: 2000 });
+        this.alertService.error(`Failed to load local user info: ${error || 'Unknown error'}`);
       }
     });
   }
@@ -149,7 +149,7 @@ export class VideoCallComponent implements OnInit, OnDestroy {
       this.socketService.callUser(this.receiverId, offer, this.authService.getLoggedInUser()._id, 'video');
     } catch (error) {
       console.error('Error starting video call:', error);
-      this.toastr.error(`Failed to start video call: ${error.message || 'Unknown error'}`, ``, { timeOut: 2000 });
+      this.alertService.error(`Failed to start video call: ${error || 'Unknown error'}`);
       this.callInProgress = false;
       this.router.navigate(['/chat'], { replaceUrl: true });
     }
@@ -171,7 +171,7 @@ export class VideoCallComponent implements OnInit, OnDestroy {
       this.socketService.callUser(this.receiverId, offer, this.authService.getLoggedInUser()._id, 'audio');
     } catch (error) {
       console.error('Error starting audio call:', error);
-      this.toastr.error(`Failed to start audio call: ${error.message || 'Unknown error'}`, ``, { timeOut: 2000 });
+      this.alertService.error(`Failed to start audio call: ${error || 'Unknown error'}`);
       this.callInProgress = false;
     }
   }
@@ -201,7 +201,7 @@ export class VideoCallComponent implements OnInit, OnDestroy {
         this.socketService.answerCall(data.from, answer);
       } catch (error) {
         console.error('Error answering call:', error);
-        this.toastr.error(`Error answering call: ${error.message || 'Unknown error'}`, ``, { timeOut: 2000 });
+        this.alertService.error(`Error answering call: ${error || 'Unknown error'}`);
         this.callInProgress = false;
         this.cleanUpCall();
       }
@@ -291,7 +291,7 @@ export class VideoCallComponent implements OnInit, OnDestroy {
       if (this.peerConnection) {
         console.log('Connection state:', this.peerConnection.connectionState);
         if (this.peerConnection.connectionState === 'disconnected' || this.peerConnection.connectionState === 'failed') {
-          this.toastr.info('Call ended by the other participant', '', { timeOut: 2000 });
+          this.alertService.info('Call ended by the other participant');
           this.cleanUpCall();
           this.router.navigate(['/chat'], { replaceUrl: true });
         }
@@ -357,7 +357,7 @@ export class VideoCallComponent implements OnInit, OnDestroy {
       }
     } catch (error) {
       console.error('Error starting screen share:', error);
-      this.toastr.error(`Failed to start screen sharing: ${error.message || 'Unknown error'}`, ``, { timeOut: 2000 });
+      this.alertService.error(`Failed to start screen sharing: ${error || 'Unknown error'}`);
     }
   }
 
@@ -386,7 +386,7 @@ export class VideoCallComponent implements OnInit, OnDestroy {
       this.screenStream = null;
     } catch (error) {
       console.error('Error stopping screen share:', error);
-      this.toastr.error(`Error stopping screen share: ${error.message || 'Unknown error'}`, ``, { timeOut: 2000 });
+      this.alertService.error(`Error stopping screen share: ${error || 'Unknown error'}`);
     }
   }
 
@@ -530,11 +530,11 @@ export class VideoCallComponent implements OnInit, OnDestroy {
 
       this.mediaRecorder.start(1000);
       this.isRecording = true;
-      this.toastr.info('Screen recording started');
+      this.alertService.info('Screen recording started');
 
     } catch (error) {
       console.error('Screen recording failed:', error);
-      this.toastr.error(`Screen recording could not be started: ${error.message || 'Unknown error'}`, ``, { timeOut: 2000 });
+      this.alertService.error(`Screen recording could not be started: ${error || 'Unknown error'}`);
     }
   }
 
@@ -554,7 +554,7 @@ export class VideoCallComponent implements OnInit, OnDestroy {
     if (this.mediaRecorder && this.isRecording) {
       this.mediaRecorder.stop();
       this.isRecording = false;
-      this.toastr.success('Recording saved');
+      this.alertService.success('Recording saved');
     }
   }
 

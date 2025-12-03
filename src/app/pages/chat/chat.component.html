@@ -9,7 +9,8 @@
                             <img [src]="loginUserProfile" class="rounded-circle avatar-sm">
                         </button>
                         <div class="dropdown-menu dropdown-menu dropdown-menu-md p-2" ngbDropdownMenu>
-                            <a class="dropdown-item" (click)="openUserProfile(this.authService.getLoggedInUser()._id)">Profile</a>
+                            <a class="dropdown-item"
+                                (click)="openUserProfile(this.authService.getLoggedInUser()._id)">Profile</a>
                             <a class="dropdown-item" (click)="onLogoutClick()">Logout</a>
                         </div>
                     </div>
@@ -38,8 +39,10 @@
                                 aria-haspopup="true" aria-expanded="false" ngbDropdownToggle>
                                 <i class="fa-solid fa-ellipsis"></i> </button>
                             <div class="dropdown-menu dropdown-menu-end" ngbDropdownMenu>
-                                <a class="dropdown-item" (click)="openUserProfile(this.authService.getLoggedInUser()._id)">Profile</a>
-                                <a class="dropdown-item" (click)="editCurrentUserProfile(this.authService.getLoggedInUser()._id)">Edit</a>
+                                <a class="dropdown-item"
+                                    (click)="openUserProfile(this.authService.getLoggedInUser()._id)">Profile</a>
+                                <a class="dropdown-item"
+                                    (click)="editCurrentUserProfile(this.authService.getLoggedInUser()._id)">Edit</a>
                             </div>
                         </div>
                     </div>
@@ -125,8 +128,9 @@
                                             <div class="d-flex">
                                                 <h5 class="font-size-14" style="padding-top: 3px;">Groups</h5>
                                                 <div class="ms-auto">
-                                                    <button class="btn btn-outline-secondary btn-sm" data-bs-toggle="modal" data-bs-target="#groupModal">
-                                                    <i class="fa-solid fa-users"></i> New Group</button>
+                                                    <button class="btn btn-outline-secondary btn-sm"
+                                                        data-bs-toggle="modal" data-bs-target="#groupModal">
+                                                        <i class="fa-solid fa-users"></i> New Group</button>
                                                 </div>
                                             </div>
                                             <ul class="list-unstyled chat-list">

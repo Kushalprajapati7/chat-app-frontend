@@ -1,7 +1,7 @@
 import { Component, OnInit } from '@angular/core';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
-import { ToastrService } from 'ngx-toastr';
+import { AlertService } from 'src/app/_shared/alert/alert.service';
 import { AuthService } from 'src/app/core/services/auth.service';
 
 @Component({
@@ -20,14 +20,14 @@ export class RegisterComponent implements OnInit {
     private fb: FormBuilder,
     private router: Router,
     private authService: AuthService,
-    private toastr: ToastrService
+    private alertService: AlertService,
   ) { }
 
   ngOnInit(): void {
     this.registerForm = this.fb.group({
       username: ['', [Validators.required, Validators.minLength(3)]],
       email: ['', [Validators.required, Validators.email]],
-      password: ['', [Validators.required]],
+      password: ['', [Validators.required, Validators.minLength(6)]],
       avatar: [null, Validators.required]
     });
   }
@@ -48,7 +48,7 @@ export class RegisterComponent implements OnInit {
   onSubmit() {
     this.submitted = true;
     if (this.registerForm.invalid) {
-      this.toastr.error('Please complete all required fields in the form before submitting.', '', { timeOut: 2000 });
+      this.alertService.warning('Please complete all required fields in the form before submitting.');
       return;
     }
     this.loading = true;
@@ -60,16 +60,16 @@ export class RegisterComponent implements OnInit {
     if (this.avatarFile) {
       formData.append('image', this.avatarFile);
     }
-
+    this.alertService.loading('Registering...');
     this.authService.register(formData as any).subscribe({
       next: () => {
         this.loading = false;
         this.router.navigate(['auth/login']);
-        this.toastr.success('Registered Successfully', '', { timeOut: 2000 });
+        this.alertService.success('Registered Successfully');
       },
       error: (error) => {
         this.loading = false;
-        this.toastr.error(error.error.message, '', { timeOut: 2000 });
+        this.alertService.error(error || 'Registration failed. Please try again.');
       },
     }
     )

@@ -1,7 +1,6 @@
 import { Component, Input, OnInit } from '@angular/core';
-import { ToastrService } from 'ngx-toastr';
-
 import { NgbActiveModal } from '@ng-bootstrap/ng-bootstrap';
+import { AlertService } from 'src/app/_shared/alert/alert.service';
 import { IUser } from 'src/app/core/interfaces/user';
 import { UserService } from 'src/app/core/services/user.service';
 
@@ -18,7 +17,7 @@ export class ProfileComponent implements OnInit {
 
   constructor(
     private userService: UserService,
-    private toastr: ToastrService,
+    private alertService: AlertService,
     public activeModal: NgbActiveModal
   ) { }
 
@@ -35,7 +34,7 @@ export class ProfileComponent implements OnInit {
       },
       error: (error) => {
         this.isLoading = false;
-        this.toastr.error(`Failed to fetch user details: ${error.message || 'Unknown error'}`, '', { timeOut: 2000 });
+        this.alertService.error(`Failed to fetch user details: ${error || 'Unknown error'}`);
       }
     });
   }

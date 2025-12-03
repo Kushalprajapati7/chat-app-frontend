@@ -6,7 +6,6 @@ import { HTTP_INTERCEPTORS, HttpClientModule } from '@angular/common/http';
 import { CommonModule } from '@angular/common';
 import { SocketIoModule } from 'ngx-socket-io';
 import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
-import { ToastrModule } from 'ngx-toastr';
 import { environment } from 'src/environments/environment';
 import { SimplebarAngularModule } from 'simplebar-angular';
 import { AuthInterceptor } from './core/interceptors/auth.interceptor';
@@ -17,10 +16,10 @@ import { UserService } from './core/services/user.service';
 const socketConfig = {
   url: environment.apiUrl,
   options: {
-    transports: ['websocket', 'polling'] 
+    transports: ['websocket', 'polling']
   },
   secure: true,
-  
+
 };
 // function getUsers(userService: UserService) {
 //   return () => {
@@ -43,7 +42,6 @@ const socketConfig = {
     AppComponent,
   ],
   imports: [
-    ToastrModule.forRoot(),
     BrowserAnimationsModule,
     BrowserModule,
     AppRoutingModule,

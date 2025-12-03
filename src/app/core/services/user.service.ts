@@ -6,8 +6,7 @@ import { IUser } from '../interfaces/user';
 import { IConversation } from '../interfaces/conversation';
 import { IApiResponse } from '../interfaces/apiResponse';
 import { Router } from '@angular/router';
-import { ToastrService } from 'ngx-toastr';
-
+import { AlertService } from 'src/app/_shared/alert/alert.service';
 @Injectable({
   providedIn: 'root'
 })
@@ -18,7 +17,7 @@ export class UserService {
   constructor(
     private http: HttpClient,
     private router: Router,
-    private toastr: ToastrService
+    private alertService: AlertService,
 
   ) { }
 
@@ -30,7 +29,7 @@ export class UserService {
     const token = this.getToken();
     if (!token) {
       this.router.navigate(['/auth/login']);
-      this.toastr.error('You need to be logged in to access this page.', 'Authentication Required', { timeOut: 3000 });
+      this.alertService.error('You need to be logged in to access this page.');
     }
     return new HttpHeaders({
       'Content-Type': 'application/json',
@@ -54,7 +53,7 @@ export class UserService {
     return this.http.get<IApiResponse<IConversation[]>>(`${this.apiUrl}/conversations`, { headers: this.getHeaders() });
   }
 
-  getMessages(conversationId: string, page?:number, pageSize?:number): Observable<any> {
+  getMessages(conversationId: string, page?: number, pageSize?: number): Observable<any> {
     return this.http.get(`${this.apiUrl}/messages/${conversationId}`, { headers: this.getHeaders() });
   }
 
@@ -99,7 +98,7 @@ export class UserService {
   }
 
   getJitsiToken(roomName: string): Observable<{ status: boolean, allowed: boolean, jwt: string, roomName: string }> {
-    return this.http.get<any>(`${this.apiUrl}/jitsi-room/${roomName}`, { headers:this.getHeaders() });
+    return this.http.get<any>(`${this.apiUrl}/jitsi-room/${roomName}`, { headers: this.getHeaders() });
   }
 
 }

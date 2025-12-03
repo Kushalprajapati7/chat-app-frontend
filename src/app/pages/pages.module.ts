@@ -11,6 +11,7 @@ import { NgbModule } from '@ng-bootstrap/ng-bootstrap';
 import { FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { SimplebarAngularModule } from 'simplebar-angular';
 import { NgxSkeletonLoaderModule } from 'ngx-skeleton-loader';
+import { SharedModule } from '../_shared/shared.module';
 
 @NgModule({
   declarations: [
@@ -22,6 +23,7 @@ import { NgxSkeletonLoaderModule } from 'ngx-skeleton-loader';
     JistiMeetComponent,
   ],
   imports: [
+    SharedModule,
     CommonModule,
     PageRoutingModule,
     NgbModule,

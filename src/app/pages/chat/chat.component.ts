@@ -1,6 +1,5 @@
 import { AfterViewInit, ChangeDetectorRef, Component, ElementRef, OnInit, ViewChild } from '@angular/core';
 import { FormBuilder, Validators, FormGroup } from '@angular/forms';
-import { ToastrService } from 'ngx-toastr';
 import { Router } from '@angular/router';
 import { Subscription } from 'rxjs';
 import Swal from 'sweetalert2';
@@ -11,6 +10,7 @@ import { ProfileComponent } from '../profile/profile.component';
 import { UserService } from 'src/app/core/services/user.service';
 import { SocketService } from 'src/app/core/services/socket.service';
 import { AuthService } from 'src/app/core/services/auth.service';
+import { AlertService } from 'src/app/_shared/alert/alert.service';
 
 @Component({
   selector: 'app-chat',
@@ -75,7 +75,7 @@ export class ChatComponent implements OnInit, AfterViewInit {
     private userService: UserService,
     private socketService: SocketService,
     public authService: AuthService,
-    private toastr: ToastrService,
+    private alertService: AlertService,
     private cdr: ChangeDetectorRef,
     private router: Router,
     private fb: FormBuilder,
@@ -117,7 +117,7 @@ export class ChatComponent implements OnInit, AfterViewInit {
             setTimeout(() => this.scrollToBottom(), 100);
           },
           error: (error) => {
-            this.toastr.error(`Error fetching user: ${error.message || 'Unknown error'}`, ``, { timeOut: 2000 });
+            this.alertService.error(`Error fetching user: ${error || 'Unknown error'}`);
           }
         });
       }
@@ -185,7 +185,7 @@ export class ChatComponent implements OnInit, AfterViewInit {
     if (this.chatWindow)
       this.scrollToBottom();
   }
-  
+
   private setupCallNotifications() {
     this.callListenerSub = this.socketService.onIncomingCall().subscribe(async (data: any) => {
       const myUserId = this.authService.getLoggedInUser()._id;
@@ -193,7 +193,7 @@ export class ChatComponent implements OnInit, AfterViewInit {
       if (!data.offer || data.from === myUserId || data.to !== myUserId) return;
 
       if (this.callInProgress) {
-        console.log("Already in a call. Ignoring incoming call.");
+        this.alertService.info("You are already in another call.");
         return;
       }
 
@@ -218,11 +218,11 @@ export class ChatComponent implements OnInit, AfterViewInit {
               queryParams: { callType: data.callType }
             });
           } else {
-            this.toastr.info('Call not accepted', '', { timeOut: 2000 });
+            this.alertService.info('Call not accepted.');
           }
         },
         error: (error) => {
-          this.toastr.error(`Failed to fetch caller info: ${error.message || 'Unknown error'}`, ``, { timeOut: 2000 });
+          this.alertService.error(`Failed to fetch caller info: ${error || 'Unknown error'}`);
         }
       });
     });
@@ -282,7 +282,7 @@ export class ChatComponent implements OnInit, AfterViewInit {
         this.users = response.data;
       },
       error: (error) => {
-        this.toastr.error(`Failed to load users: ${error.message || 'Unknown error'}`, ``, { timeOut: 2000 });
+        this.alertService.error(`Failed to load users: ${error || 'Unknown error'}`);
       }
     });
   }
@@ -290,7 +290,7 @@ export class ChatComponent implements OnInit, AfterViewInit {
   onLogoutClick() {
     this.socketService.disconnectSocket();
     this.authService.logout();
-    this.toastr.success('Logout Successfully', '', { timeOut: 2000 });
+    this.alertService.success('Logout Successfully.');
   }
 
   loadChatConversations() {
@@ -302,7 +302,7 @@ export class ChatComponent implements OnInit, AfterViewInit {
       },
       error: (error) => {
         this.isLoading = false;
-        this.toastr.error(`Failed to load conversations: ${error.message || 'Unknown error'}`, '', { timeOut: 2000 });
+        this.alertService.error(`Failed to load conversations: ${error || 'Unknown error'}`);
       }
     });
   }
@@ -313,7 +313,7 @@ export class ChatComponent implements OnInit, AfterViewInit {
         this.groupChatData = response.data;
       },
       error: (error) => {
-        this.toastr.error(`Failed to load group conversations: ${error.message || 'Unknown error'}`, '', { timeOut: 2000 });
+        this.alertService.error(`Failed to load group conversations: ${error || 'Unknown error'}`);
       }
     });
   }
@@ -347,11 +347,11 @@ export class ChatComponent implements OnInit, AfterViewInit {
           this.loadMessages(this.conversationId);
           this.cdr.detectChanges();
         } else {
-          this.toastr.error('Failed to create or retrieve conversation', '', { timeOut: 2000 });
+          this.alertService.error('Failed to create or retrieve conversation.');
         }
       },
       error: (error) => {
-        this.toastr.error(`Failed to create or retrieve conversation: ${error.message || 'Unknown error'}`, '', { timeOut: 2000 });
+        this.alertService.error(`Failed to create or retrieve conversation: ${error || 'Unknown error'}`);
       }
     });
   }
@@ -461,7 +461,7 @@ export class ChatComponent implements OnInit, AfterViewInit {
         if (file) {
           this.file = file;
           this.fileName = URL.createObjectURL(file);
-          this.toastr.info('File copied from clipboard!');
+          this.alertService.info('File copied from clipboard!');
         }
       }
     }
@@ -535,7 +535,7 @@ export class ChatComponent implements OnInit, AfterViewInit {
     this.isLoading = true;
     if (this.groupForm.invalid || this.selectedMembers.length < 2) {
       this.isLoading = false;
-      this.toastr.error('Please provide a valid group name, description, and select at least 2 members.');
+      this.alertService.error('Please provide a valid group name, description, and select at least 2 members.');
       return;
     }
 
@@ -560,7 +560,7 @@ export class ChatComponent implements OnInit, AfterViewInit {
     this.userService.createGroup(formData).subscribe({
       next: () => {
         this.isLoading = false;
-        this.toastr.success('Group created successfully!', '', { timeOut: 2000 });
+        this.alertService.success('Group created successfully!');
         this.loadGroupConversations();
         this.showGroupForm = false;
         this.groupForm.reset();
@@ -569,7 +569,7 @@ export class ChatComponent implements OnInit, AfterViewInit {
       },
       error: (error) => {
         this.isLoading = false;
-        this.toastr.error(`Failed to create group: ${error.message || 'Unknown error'}`, '', { timeOut: 2000 });
+        this.alertService.success(`${error || 'Group Conversation created Successfully!'}`);
       }
     });
   }
@@ -675,9 +675,9 @@ export class ChatComponent implements OnInit, AfterViewInit {
                 if (pngBlob) {
                   const item = new ClipboardItem({ 'image/png': pngBlob });
                   navigator.clipboard.write([item]).then(() => {
-                    this.toastr.info('Image copied to clipboard!', '', { timeOut: 500 });
+                    this.alertService.info('Image copied to clipboard!');
                   }).catch((error) => {
-                    this.toastr.error(`Failed to copy image to clipboard: ${error.message || 'Unknown error'}`, ``, { timeOut: 2000 });
+                    this.alertService.error(`Failed to copy image to clipboard: ${error || 'Unknown error'}`);
                   });
                 }
               }, 'image/png');
@@ -687,21 +687,21 @@ export class ChatComponent implements OnInit, AfterViewInit {
           } else {
             const item = new ClipboardItem({ 'image/png': blob });
             navigator.clipboard.write([item]).then(() => {
-              this.toastr.info('Image copied to clipboard!', '', { timeOut: 500 });
+              this.alertService.info('Image copied to clipboard!');
             }).catch((error) => {
-              this.toastr.error(`Failed to copy image to clipboard: ${error.message || 'Unknown error'}`, '', { timeOut: 2000 });
+              this.alertService.error(`Failed to copy image to clipboard: ${error || 'Unknown error'}`);
             });
           }
         })
         .catch((error) => {
-          this.toastr.error(`Error fetching the image: ${error.message || 'Unknown error'}`, '', { timeOut: 2000 });
+          this.alertService.error(`Error fetching the image: ${error || 'Unknown error'}`);
         });
     } else {
       const messageContent = msg.content;
       navigator.clipboard.writeText(messageContent).then(() => {
-        this.toastr.info('Message copied!', '', { timeOut: 500 });
+        this.alertService.info('Message copied!');
       }).catch((error) => {
-        this.toastr.error(`Failed to copy message: ${error.message || 'Unknown error'}`, '', { timeOut: 2000 });
+        this.alertService.error(`Failed to copy message: ${error || 'Unknown error'}`);
       });
     }
   }
@@ -723,18 +723,12 @@ export class ChatComponent implements OnInit, AfterViewInit {
     }).then((result) => {
       if (result.isConfirmed) {
         this.userService.deleteMessage(message._id).subscribe({
-          next: () => {
+          next: (res) => {
             this.messageArray = this.messageArray.filter(msg => msg._id !== message._id);
-            Swal.fire({
-              icon: 'success',
-              title: 'Deleted!',
-              text: 'Message deleted successfully!',
-              timer: 500,
-              showConfirmButton: false
-            });
+            this.alertService.success(`${res.message || 'Message deleted successfully!'}`);
           },
           error: (error) => {
-            Swal.fire('Error', `${error}`, 'error');
+            this.alertService.error(`${error || 'Unknown error'}`);
           }
         });
       }
@@ -754,19 +748,13 @@ export class ChatComponent implements OnInit, AfterViewInit {
     }).then((result) => {
       if (result.isConfirmed) {
         this.userService.deleteConversation(conversationId).subscribe({
-          next: () => {
+          next: (res) => {
             this.chatData = this.chatData.filter(chat => chat._id !== conversationId);
             this.groupChatData = this.groupChatData.filter(chat => chat._id !== conversationId);
-            Swal.fire({
-              icon: 'success',
-              title: 'Deleted!',
-              text: 'Conversation deleted successfully!',
-              timer: 500,
-              showConfirmButton: false
-            });
+            this.alertService.success(`${res.message || 'Conversation deleted successfully!'}`);
           },
           error: (error) => {
-            Swal.fire('Error', `${error}`, 'error');
+            this.alertService.error(`${error || 'Unknown error'}`);
           }
         });
       }
@@ -809,15 +797,15 @@ export class ChatComponent implements OnInit, AfterViewInit {
   }
 
   saveMessage(message: any) {
-    this.toastr.info("This feature is currently under development.", '', { timeOut: 2000 });
+    this.alertService.info("This feature is currently under development.");
   }
 
   forwardMessage(message: any) {
-    this.toastr.info("This feature is currently under development.", '', { timeOut: 2000 });
+    this.alertService.info("This feature is currently under development.");
   }
 
   editCurrentUserProfile(userId: string) {
-    this.toastr.info("This feature is currently under development.", '', { timeOut: 2000 });
+    this.alertService.info("This feature is currently under development.");
   }
 
 }

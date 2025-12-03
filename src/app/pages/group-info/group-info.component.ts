@@ -1,10 +1,9 @@
 import { Component, Input, OnInit, TemplateRef, ViewChild } from '@angular/core';
-import { ToastrService } from 'ngx-toastr';
 import { NgbActiveModal } from '@ng-bootstrap/ng-bootstrap';
 import { NgbModal } from '@ng-bootstrap/ng-bootstrap';
 import { ProfileComponent } from '../profile/profile.component';
 import { UserService } from 'src/app/core/services/user.service';
-
+import { AlertService } from 'src/app/_shared/alert/alert.service';
 
 @Component({
   selector: 'app-group-info',
@@ -25,7 +24,7 @@ export class GroupInfoComponent implements OnInit {
 
   constructor(
     private userService: UserService,
-    private toastr: ToastrService,
+    private alertService: AlertService,
     public activeModal: NgbActiveModal,
     private modalService: NgbModal
 
@@ -43,7 +42,7 @@ export class GroupInfoComponent implements OnInit {
         this.group = response.data;
       },
       error: (error) => {
-        this.toastr.error(`${error || 'Unknown error'}`, '', { timeOut: 2000 });
+        this.alertService.error(`${error || 'Unknown error'}`);
         this.isLoading = false;
       }
     });
@@ -67,7 +66,7 @@ export class GroupInfoComponent implements OnInit {
         this.allUsers = res.data;
       },
       error: (error) => {
-        this.toastr.error(`${error || 'Unknown error'}`, '', { timeOut: 2000 });
+        this.alertService.error(`${error || 'Unknown error'}`);
       }
     });
   }
@@ -79,13 +78,13 @@ export class GroupInfoComponent implements OnInit {
 
     this.userService.addMembersToGroup(this.groupId, userIds).subscribe({
       next: () => {
-        this.toastr.success("Members added successfully");
+        this.alertService.success("Members added successfully");
         this.getGroupInfo(this.groupId);
         this.selectedUserIds.clear();
         this.showAddMembers = false;
       },
       error: (error) => {
-        this.toastr.error(`${error || 'Unknown error'}`, '', { timeOut: 2000 });
+        this.alertService.error(`${error || 'Unknown error'}`);
       }
     });
   }
@@ -104,17 +103,17 @@ export class GroupInfoComponent implements OnInit {
   removeMember(userId: string) {
     this.userService.removeMemberFromGroup(this.groupId, userId).subscribe({
       next: () => {
-        this.toastr.success("Member removed successfully");
+        this.alertService.success("Member removed successfully");
         this.getGroupInfo(this.groupId);
       },
       error: (error) => {
-        this.toastr.error(`${error || 'Unknown error'}`, '', { timeOut: 2000 });
+        this.alertService.error(`${error || 'Unknown error'}`);
       }
     });
   }
 
   makeGroupAdmin(userId: string) {
-    this.toastr.info("This feature is currently under development.", '', { timeOut: 2000 });
+    this.alertService.info("This feature is currently under development.");
   }
 
   openUserProfile(userId: string) {

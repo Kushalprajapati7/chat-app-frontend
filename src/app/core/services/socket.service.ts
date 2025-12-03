@@ -2,8 +2,8 @@ import { Injectable } from '@angular/core';
 import { Socket } from 'ngx-socket-io';
 import { HttpClient } from '@angular/common/http';
 import { AuthService } from './auth.service';
-import { ToastrService } from 'ngx-toastr';
 import { environment } from 'src/environments/environment';
+import { AlertService } from 'src/app/_shared/alert/alert.service';
 @Injectable({
   providedIn: 'root'
 })
@@ -12,7 +12,7 @@ export class SocketService {
     private socket: Socket,
     private http: HttpClient,
     private authService: AuthService,
-    private toastr: ToastrService,
+    private alertService: AlertService,
 
   ) {
     this.autoReconnect();
@@ -21,7 +21,7 @@ export class SocketService {
   connectWithToken() {
     const token = this.authService.getToken();
     if (!token) {
-      this.toastr.error('No token found for WebSocket connection', '', { timeOut: 2000 });
+      this.alertService.error('No token found for WebSocket connection');
       return;
     }
 
@@ -104,7 +104,7 @@ export class SocketService {
   endCall(receiverId: string) {
     this.socket.emit('call-ended', { to: receiverId });
   }
-  
+
   onCallEnded() {
     return this.socket.fromEvent("callEnded");
   }

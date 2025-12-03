@@ -1,9 +1,9 @@
 import { Component, OnInit } from '@angular/core';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
+import { AlertService } from 'src/app/_shared/alert/alert.service';
 import { AuthService } from 'src/app/core/services/auth.service';
 import { SocketService } from 'src/app/core/services/socket.service';
-import { ToastrService } from 'ngx-toastr';
 @Component({
     selector: 'app-login',
     templateUrl: './login.component.html',
@@ -22,7 +22,7 @@ export class LoginComponent implements OnInit {
         private router: Router,
         private authService: AuthService,
         private socketService: SocketService,
-        private toastr: ToastrService
+        private alertService: AlertService,
     ) { }
 
     ngOnInit(): void {
@@ -35,12 +35,13 @@ export class LoginComponent implements OnInit {
     onSubmit() {
         this.summited = true;
         if (this.loginForm.invalid) {
-            this.toastr.error('Please complete all required fields in the form before submitting.', '', { timeOut: 2000 });
+            this.alertService.warning('Please complete all required fields in the form before submitting.');
             return;
         }
         this.loading = true;
         const email = this.loginForm.get('email')?.value;
         const password = this.loginForm.get('password')?.value;
+        this.alertService.loading('Logging in...');
         this.authService.loginUser(email, password).subscribe({
             next: (response) => {
                 this.loading = false;
@@ -49,11 +50,11 @@ export class LoginComponent implements OnInit {
                     this.socketService.connectWithToken();
                     this.router.navigate(['/chat']);
                 }
-                this.toastr.success('Login Successfully', '', { timeOut: 2000 });
+                this.alertService.success('Login Successfully');
             },
             error: (error) => {
                 this.loading = false;
-                this.toastr.error(error, '', { timeOut: 2000 });
+                this.alertService.error(error);
             }
         });
     }

@@ -1,9 +1,9 @@
 import { Component, OnInit, OnDestroy, ViewChild, ElementRef } from '@angular/core';
 import { AuthService } from '../../core/services/auth.service';
 import { SocketService } from '../../core/services/socket.service';
-import { ToastrService } from 'ngx-toastr';
 import { ActivatedRoute, Router } from '@angular/router';
 import { UserService } from '../../core/services/user.service';
+import { AlertService } from 'src/app/_shared/alert/alert.service';
 
 @Component({
   selector: 'app-group-call',
@@ -58,7 +58,7 @@ export class GroupCallComponent implements OnInit, OnDestroy {
   constructor(
     private socketService: SocketService,
     public authService: AuthService,
-    private toastr: ToastrService,
+    private alertService: AlertService,
     private route: ActivatedRoute,
     private router: Router,
     private userService: UserService
@@ -81,7 +81,7 @@ export class GroupCallComponent implements OnInit, OnDestroy {
       this.setupSocketListeners();
     } catch (error) {
       console.error('Error initializing group call:', error);
-      this.toastr.error(`Failed to start group call: ${error.message || 'Unknown error'}`, ``, { timeOut: 2000 });
+      this.alertService.error(`Failed to start group call: ${error || 'Unknown error'}`);
       this.router.navigate(['/chat'], { replaceUrl: true });
     }
   }
@@ -238,7 +238,7 @@ export class GroupCallComponent implements OnInit, OnDestroy {
         }
       },
       error: (error) => {
-        this.toastr.warning(`Failed to fetch username for userId: ${error.message || 'Unknown error'}`, ``, { timeOut: 2000 });
+        this.alertService.warning(`Failed to fetch username for userId: ${error || 'Unknown error'}`);
       }
     });
   }
@@ -262,7 +262,7 @@ export class GroupCallComponent implements OnInit, OnDestroy {
       this.screenStream.getVideoTracks()[0].onended = () => this.stopScreenShare();
     } catch (error) {
       console.error('Error starting screen share:', error);
-      this.toastr.error(`Failed to start screen sharing: ${error.message || 'Unknown error'}`, ``, { timeOut: 2000 });
+      this.alertService.error(`Failed to start screen sharing: ${error || 'Unknown error'}`);
     }
   }
 
