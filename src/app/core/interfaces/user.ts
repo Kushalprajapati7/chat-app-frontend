@@ -6,4 +6,6 @@ export interface IUser {
     avatar: string;
     isOnline: boolean;
     lastSeen: Date;
+    bio?: string;
+    status?: 'Available' | 'Away' | 'Busy';
 }

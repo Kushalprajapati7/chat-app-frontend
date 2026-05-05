@@ -53,8 +53,8 @@ export class UserService {
     return this.http.get<IApiResponse<IConversation[]>>(`${this.apiUrl}/conversations`, { headers: this.getHeaders() });
   }
 
-  getMessages(conversationId: string, page?: number, pageSize?: number): Observable<any> {
-    return this.http.get(`${this.apiUrl}/messages/${conversationId}`, { headers: this.getHeaders() });
+  getMessages(conversationId: string, page: number = 1, pageSize: number = 20): Observable<any> {
+    return this.http.get(`${this.apiUrl}/messages/${conversationId}?page=${page}&limit=${pageSize}`, { headers: this.getHeaders() });
   }
 
   getUserById(userId: string): Observable<IApiResponse<IUser>> {
@@ -99,6 +99,14 @@ export class UserService {
 
   getJitsiToken(roomName: string): Observable<{ status: boolean, allowed: boolean, jwt: string, roomName: string }> {
     return this.http.get<any>(`${this.apiUrl}/jitsi-room/${roomName}`, { headers: this.getHeaders() });
+  }
+
+  updateProfile(formData: FormData): Observable<IApiResponse<IUser>> {
+    return this.http.patch<IApiResponse<IUser>>(`${this.apiUrl}/web/user/profile`, formData, { headers: this.groupCreatHeaders() });
+  }
+
+  getSharedMedia(conversationId: string): Observable<IApiResponse<any[]>> {
+    return this.http.get<IApiResponse<any[]>>(`${this.apiUrl}/conversations/${conversationId}/media`, { headers: this.getHeaders() });
   }
 
 }

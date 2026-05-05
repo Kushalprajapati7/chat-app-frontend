@@ -19,6 +19,7 @@ export class GroupInfoComponent implements OnInit {
   showAddMembers: boolean = false;
   allUsers: any[] = [];
   selectedUserIds: Set<string> = new Set();
+  mediaList: any[] = [];
   @ViewChild('addMembersModal') addMembersModalRef!: TemplateRef<any>;
 
 
@@ -32,6 +33,7 @@ export class GroupInfoComponent implements OnInit {
 
   ngOnInit(): void {
     this.getGroupInfo(this.groupId);
+    this.getSharedMedia(this.groupId);
   }
 
   getGroupInfo(groupId: string) {
@@ -46,6 +48,21 @@ export class GroupInfoComponent implements OnInit {
         this.isLoading = false;
       }
     });
+  }
+
+  getSharedMedia(groupId: string) {
+    this.userService.getSharedMedia(groupId).subscribe({
+      next: (response) => {
+        this.mediaList = response.data;
+      },
+      error: (error) => {
+        console.error('Error fetching media:', error);
+      }
+    });
+  }
+
+  openMedia(url: string) {
+    if (url) window.open(url, '_blank');
   }
 
   closeModal() {

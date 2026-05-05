@@ -18,14 +18,26 @@ import { AlertService } from 'src/app/_shared/alert/alert.service';
   styleUrls: ['./chat.component.scss']
 })
 export class ChatComponent implements OnInit, AfterViewInit {
-  chatData!: any[];
-  groupChatData!: any[];
+  chatData: any[] = [];
+  groupChatData: any[] = [];
   users: any[] = [];
   selectedMembers: any[] = [];
   groupMembers!: any[];
   groupCallParticipants: any[] = [];
 
-  messageArray: Array<{ _id: string, user: any, content?: string, fileUrl?: string, type: string, isDeleted: boolean, createdAt: string, senderName?: string }> = [];
+  messageArray: Array<{
+    _id: string,
+    user: any,
+    content?: string,
+    fileUrl?: string,
+    type: string,
+    isDeleted: boolean,
+    createdAt: string,
+    senderName?: string,
+    replyTo?: any,
+    reactions?: any[],
+    thumbnailUrl?: string,
+  }> = [];
   formData!: FormGroup;
   groupForm!: FormGroup;
 
@@ -57,6 +69,13 @@ export class ChatComponent implements OnInit, AfterViewInit {
   callInProgress: boolean = false;
   isLoading: boolean = false;
 
+  replyingTo: any = null;
+  showEmojiPicker: string | null = null;
+  popularEmojis: string[] = ['👍', '❤️', '😂', '😮', '😢', '🙏', '💯'];
+  highlightedMessageId: string | null = null;
+  searchTerm: string = '';
+  showSearch: boolean = false;
+
   file: File | null = null;
   selectedFile: File | null = null;
 
@@ -66,9 +85,11 @@ export class ChatComponent implements OnInit, AfterViewInit {
   pageSize = 20;
   hasMoreMessages = true;
   isFetchingOldMessages = false;
+  private chatWindowObserver: IntersectionObserver | null = null;
 
 
   @ViewChild('chatWindow', { static: false }) chatWindow!: ElementRef;
+  @ViewChild('topElement', { static: false }) topElement!: ElementRef;
 
   constructor(
     public formBuilder: FormBuilder,
@@ -93,10 +114,10 @@ export class ChatComponent implements OnInit, AfterViewInit {
       message: ['', Validators.required]
     });
 
-    this.socketService.newMessageReceived().subscribe(data => {
+    this.socketService.newMessageReceived().subscribe((data: any) => {
       if (data.conversationId !== this.conversationId) return;
 
-      if (!this.messageArray.some(msg => msg.createdAt === data.createdAt)) {
+      if (!this.messageArray.some(msg => msg._id === data._id)) {
         this.messageArray.push(data);
         this.referenceChatAndGroupList(this.conversationId, data, this.chatData);
       }
@@ -104,30 +125,117 @@ export class ChatComponent implements OnInit, AfterViewInit {
       setTimeout(() => this.scrollToBottom(), 100);
     });
 
-    this.socketService.newGroupMessageReceived().subscribe((data) => {
-      if (data.conversationId !== this.conversationId) return;
-      this.referenceChatAndGroupList(this.conversationId, data, this.groupChatData);
-
-      if (!this.messageArray.some(msg => msg.createdAt === data.createdAt)) {
-        this.userService.getUserById(data.userId).subscribe({
-          next: (response) => {
-            data.senderName = response.data.username;
-            this.messageArray.push(data);
-            this.isTyping = false;
-            setTimeout(() => this.scrollToBottom(), 100);
-          },
-          error: (error) => {
-            this.alertService.error(`Error fetching user: ${error || 'Unknown error'}`);
-          }
-        });
+    this.socketService.onReactionUpdated().subscribe((data: any) => {
+      const msg = this.messageArray.find(m => m._id === data.messageId);
+      if (msg) {
+        msg.reactions = data.reactions;
+        this.cdr.detectChanges();
       }
     });
 
-    this.socketService.receivedTyping().subscribe(data => {
+    this.socketService.newGroupMessageReceived().subscribe((data: any) => {
+      if (data.conversationId !== this.conversationId) return;
+      this.referenceChatAndGroupList(this.conversationId, data, this.groupChatData);
+
+      if (!this.messageArray.some(msg => msg._id === data._id)) {
+        if (data.user) {
+          data.senderName = data.user.username;
+          this.messageArray.push(data);
+          this.isTyping = false;
+          setTimeout(() => this.scrollToBottom(), 100);
+        } else {
+          this.userService.getUserById(data.userId).subscribe({
+            next: (response) => {
+              data.senderName = response.data.username;
+              this.messageArray.push(data);
+              this.isTyping = false;
+              setTimeout(() => this.scrollToBottom(), 100);
+            },
+            error: (error) => {
+              this.alertService.error(`Error fetching user: ${error || 'Unknown error'}`);
+            }
+          });
+        }
+      }
+    });
+
+    this.socketService.receivedTyping().subscribe((data: any) => {
       if (data.userId !== this.authService.getLoggedInUser()._id) {
         this.isTyping = data.isTyping;
       }
     });
+  }
+
+  setReply(message: any) {
+    this.replyingTo = message;
+    // Focus input
+    const input = document.querySelector('.chat-input-section input');
+    if (input) (input as HTMLElement).focus();
+  }
+
+  cancelReply() {
+    this.replyingTo = null;
+  }
+
+  scrollToMessage(messageId: string) {
+    if (!messageId) return;
+
+    // Ensure ID is a string
+    const id = messageId.toString();
+    const element = document.getElementById('message-' + id);
+
+    if (element) {
+      element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      this.highlightedMessageId = id;
+
+      // Remove highlight after 2 seconds
+      setTimeout(() => {
+        this.highlightedMessageId = null;
+      }, 2000);
+    }
+  }
+
+  toggleEmojiPicker(messageId: string) {
+    this.showEmojiPicker = this.showEmojiPicker === messageId ? null : messageId;
+  }
+
+  addReaction(messageId: string, emoji: string) {
+    this.socketService.sendReaction(messageId, emoji, this.conversationId);
+    this.showEmojiPicker = null;
+  }
+
+  getReactionCount(reactions: any[], emoji: string) {
+    return reactions ? reactions.filter(r => r.emoji === emoji).length : 0;
+  }
+
+  hasReacted(reactions: any[], emoji: string) {
+    const myId = this.authService.getLoggedInUser()._id;
+    return reactions ? reactions.some(r => r.userId === myId && r.emoji === emoji) : false;
+  }
+
+  getUniqueReactions(reactions: any[]) {
+    if (!reactions) return [];
+    const unique = [];
+    const map = new Map();
+    for (const item of reactions) {
+      if (!map.has(item.emoji)) {
+        map.set(item.emoji, true);
+        unique.push(item.emoji);
+      }
+    }
+    return unique;
+  }
+
+  toggleSearch() {
+    this.showSearch = !this.showSearch;
+    if (!this.showSearch) this.searchTerm = '';
+  }
+
+  get filteredMessages() {
+    if (!this.searchTerm || this.searchTerm.length < 2) return this.messageArray;
+    return this.messageArray.filter(msg =>
+      msg.content?.toLowerCase().includes(this.searchTerm.toLowerCase())
+    );
   }
 
   ngOnInit(): void {
@@ -184,6 +292,66 @@ export class ChatComponent implements OnInit, AfterViewInit {
   ngAfterViewInit() {
     if (this.chatWindow)
       this.scrollToBottom();
+  }
+
+  setupInfiniteScroll() {
+    if (this.chatWindowObserver) {
+      this.chatWindowObserver.disconnect();
+    }
+    const scrollElement = this.chatWindow?.nativeElement.closest('ngx-simplebar')?.querySelector('.simplebar-content-wrapper');
+    if (!scrollElement) return;
+
+    this.chatWindowObserver = new IntersectionObserver((entries) => {
+      if (entries[0].isIntersecting && this.hasMoreMessages && !this.isFetchingOldMessages) {
+        this.fetchOldMessages();
+      }
+    }, {
+      root: scrollElement,
+      rootMargin: '0px',
+      threshold: 0.1
+    });
+
+    if (this.topElement) {
+      this.chatWindowObserver.observe(this.topElement.nativeElement);
+    }
+  }
+
+  fetchOldMessages() {
+    if (!this.conversationId || !this.hasMoreMessages) return;
+    this.page++;
+    this.isFetchingOldMessages = true;
+    // save scroll height
+    const scrollElement = this.chatWindow?.nativeElement.closest('ngx-simplebar')?.querySelector('.simplebar-content-wrapper');
+    const oldScrollHeight = scrollElement?.scrollHeight || 0;
+
+    this.userService.getMessages(this.conversationId, this.page, this.pageSize).subscribe(response => {
+      if (response.success && response.data && response.data.length > 0) {
+        let olderMessages = response.data;
+        if (this.isGroupChat) {
+          olderMessages = olderMessages.map((message: any) => {
+            const sender = this.groupMembers.find(member => member._id === message.userId);
+            if (sender) {
+              message.senderName = sender.username;
+            }
+            return message;
+          });
+        }
+        this.messageArray = [...olderMessages, ...this.messageArray];
+        this.isFetchingOldMessages = false;
+        if (response.data.length < this.pageSize) {
+          this.hasMoreMessages = false;
+        }
+
+        this.cdr.detectChanges();
+        if (scrollElement) {
+          const newScrollHeight = scrollElement.scrollHeight;
+          scrollElement.scrollTop = newScrollHeight - oldScrollHeight;
+        }
+      } else {
+        this.hasMoreMessages = false;
+        this.isFetchingOldMessages = false;
+      }
+    });
   }
 
   private setupCallNotifications() {
@@ -319,12 +487,17 @@ export class ChatComponent implements OnInit, AfterViewInit {
   }
 
   startOrResumeChat(name: string, avatar: any, isOnline: boolean, conversationId: string, receiverId: string, lastSeen: Date) {
+    this.cancelReply(); // Clear any active reply when switching chats
     this.isGroupChat = false;
     this.receiverId = receiverId;
     this.username = name;
     this.userProfile = avatar;
     this.isOnline = isOnline;
     this.lastSeen = lastSeen;
+
+    this.page = 1;
+    this.hasMoreMessages = true;
+    this.isFetchingOldMessages = false;
 
     if (!conversationId) {
       this.startNewChat(receiverId, name, avatar);
@@ -344,6 +517,9 @@ export class ChatComponent implements OnInit, AfterViewInit {
           this.socketService.joinConversation(response.conversationId);
           this.username = username;
           this.userProfile = avatar;
+          this.page = 1;
+          this.hasMoreMessages = true;
+          this.isFetchingOldMessages = false;
           this.loadMessages(this.conversationId);
           this.cdr.detectChanges();
         } else {
@@ -363,11 +539,15 @@ export class ChatComponent implements OnInit, AfterViewInit {
   }
 
   openGroupConversation(group: any) {
+    this.cancelReply(); // Clear any active reply when switching groups
     this.isGroupChat = true;
     this.groupname = group.groupName;
     this.groupAvatar = group.groupAvatar ? group.groupAvatar : '';;
     this.conversationId = group._id;
     this.groupMembers = group.members;
+    this.page = 1;
+    this.hasMoreMessages = true;
+    this.isFetchingOldMessages = false;
     this.loadMessages(this.conversationId);
     this.socketService.markMessagesAsRead(this.conversationId);
     this.isSidebarOpen = !this.isSidebarOpen;
@@ -398,10 +578,12 @@ export class ChatComponent implements OnInit, AfterViewInit {
       conversationId: this.conversationId,
       content: this.message,
       createdAt: new Date().toISOString(),
+      replyTo: this.replyingTo ? this.replyingTo._id : null
     };
     if (this.file) {
       this.socketService.uploadFile(this.file).subscribe(response => {
         messageData.fileUrl = response.fileUrl;
+        messageData.thumbnailUrl = response.thumbnailUrl;
         if (this.file?.type.startsWith("image")) {
           messageData.type = "image";
         } else if (this.file?.type.startsWith("video")) {
@@ -415,24 +597,21 @@ export class ChatComponent implements OnInit, AfterViewInit {
         }
         if (this.isGroupChat) {
           messageData.conversationId = this.conversationId;
-          this.socketService.sendGroupMessage(messageData);
+          this.socketService.sendMessage(messageData);
         } else {
           this.socketService.sendMessage(messageData);
         }
         this.file = null;
         this.fileName = "";
+        this.replyingTo = null;
         this.formData.reset();
         setTimeout(() => this.scrollToBottom(), 100);
       });
     } else {
       messageData.type = "text";
-      if (this.isGroupChat) {
-        messageData.conversationId = this.conversationId;
-        this.socketService.sendGroupMessage(messageData);
-      } else {
-        this.socketService.sendMessage(messageData);
-      }
+      this.socketService.sendMessage(messageData);
 
+      this.replyingTo = null;
       setTimeout(() => this.scrollToBottom(), 100);
       this.formData.reset();
     }
@@ -468,30 +647,65 @@ export class ChatComponent implements OnInit, AfterViewInit {
   }
 
   private loadMessages(conversationId: string): void {
+    // Guard: Prevent double-loading the same conversation if a request is already in progress
+    if (this.isLoading && this.conversationId === conversationId && this.page === 1) {
+      return;
+    }
+
+    this.isLoading = true;
+    this.isFetchingOldMessages = true; // Block infinite scroll while initial page loads
+
     if (this.isGroupChat) {
-      this.isLoading = true;
       this.socketService.joinGroup(conversationId);
-      this.userService.getMessages(conversationId, this.page, this.pageSize).subscribe(response => {
-        if (response.success) {
-          this.messageArray = response.data.map((message: any) => {
+      this.userService.getMessages(conversationId, this.page, this.pageSize).subscribe({
+        next: (response) => {
+          if (response.success) {
+            this.messageArray = response.data.map((message: any) => {
+              const sender = this.groupMembers?.find(member => member._id === message.userId);
+              if (sender) {
+                message.senderName = sender.username;
+              }
+              return message;
+            });
+
+            this.hasMoreMessages = response.data.length === this.pageSize;
             this.isLoading = false;
-            const sender = this.groupMembers.find(member => member._id === message.userId);
-            if (sender) {
-              message.senderName = sender.username;
-            }
-            return message;
-          });
-          setTimeout(() => this.scrollToBottom(), 100);
+
+            this.cdr.detectChanges();
+            this.setupInfiniteScroll();
+
+            setTimeout(() => {
+              this.scrollToBottom();
+              this.isFetchingOldMessages = false; // Re-enable infinite scroll after rendering
+            }, 500);
+          }
+        },
+        error: () => {
+          this.isLoading = false;
+          this.isFetchingOldMessages = false;
         }
       });
     } else {
-      this.isLoading = true;
       this.socketService.joinConversation(conversationId);
-      this.userService.getMessages(conversationId).subscribe(response => {
-        if (response.success) {
+      this.userService.getMessages(conversationId, this.page, this.pageSize).subscribe({
+        next: (response) => {
+          if (response.success) {
+            this.messageArray = response.data;
+            this.hasMoreMessages = response.data.length === this.pageSize;
+            this.isLoading = false;
+
+            this.cdr.detectChanges();
+            this.setupInfiniteScroll();
+
+            setTimeout(() => {
+              this.scrollToBottom();
+              this.isFetchingOldMessages = false; // Re-enable infinite scroll after rendering
+            }, 500);
+          }
+        },
+        error: () => {
           this.isLoading = false;
-          this.messageArray = response.data;
-          setTimeout(() => this.scrollToBottom(), 100);
+          this.isFetchingOldMessages = false;
         }
       });
     }
@@ -623,6 +837,7 @@ export class ChatComponent implements OnInit, AfterViewInit {
 
   handleNewMessage(message: any) {
     const updateConversations = (conversations: any[]) => {
+      if (!conversations) return [];
       const conversation = conversations.find(c => c._id === message.conversationId);
       if (conversation) {
         conversation.lastMessage = {
@@ -645,6 +860,7 @@ export class ChatComponent implements OnInit, AfterViewInit {
 
   handleMessagesMarkedRead(data: { conversationId: string, userId: string }) {
     const updateUnreadCount = (conversations: any[]) => {
+      if (!conversations) return;
       const conversation = conversations.find(c => c._id === data.conversationId);
       if (conversation) {
         conversation.unreadCount = 0;
@@ -766,7 +982,14 @@ export class ChatComponent implements OnInit, AfterViewInit {
       windowClass: 'custom-modal'
     });
 
+    const loggedInUser = this.authService.getLoggedInUser();
     modalRef.componentInstance.userId = userId;
+
+    // Only pass conversationId if we are viewing someone else's profile in a private chat
+    if (userId !== loggedInUser?._id && !this.isGroupChat) {
+      modalRef.componentInstance.conversationId = this.conversationId;
+    }
+
     modalRef.componentInstance.modalRef = modalRef;
   }
 
@@ -781,6 +1004,7 @@ export class ChatComponent implements OnInit, AfterViewInit {
   }
 
   referenceChatAndGroupList(conversationId: string, newMessage: any, chatListData: any[]) {
+    if (!chatListData) return;
     const chatIndex = chatListData.findIndex(chat => chat._id === conversationId);
 
     if (chatIndex !== -1) {

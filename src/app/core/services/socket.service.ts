@@ -43,11 +43,19 @@ export class SocketService {
   uploadFile(file: File) {
     const formData = new FormData();
     formData.append("file", file);
-    return this.http.post<{ fileUrl: string }>(`${environment.apiUrl}/upload`, formData);
+    return this.http.post<{ fileUrl: string, thumbnailUrl: string }>(`${environment.apiUrl}/upload`, formData);
   }
 
-  sendMessage(messageData: { user: string, conversationId: string, content: string, fileUrl?: string, type: string }) {
+  sendMessage(messageData: { user: string | any, conversationId: string, content: string, fileUrl?: string, thumbnailUrl?: string, type: string, replyTo?: string }) {
     this.socket.emit('sendMessage', messageData);
+  }
+
+  sendReaction(messageId: string, emoji: string, conversationId: string) {
+    this.socket.emit('reactToMessage', { messageId, emoji, conversationId });
+  }
+
+  onReactionUpdated() {
+    return this.socket.fromEvent('messageReactionUpdated');
   }
 
   typing(conversationId: string, userId: string): void {
@@ -55,7 +63,7 @@ export class SocketService {
 
     setTimeout(() => {
       this.socket.emit('stopTyping', conversationId, userId);
-    }, 2000);
+    }, 20000);
   }
 
   receivedTyping() {

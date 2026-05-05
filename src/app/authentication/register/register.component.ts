@@ -65,7 +65,7 @@ export class RegisterComponent implements OnInit {
       next: () => {
         this.loading = false;
         this.router.navigate(['auth/login']);
-        this.alertService.success('Registered Successfully');
+        this.alertService.success('Account created! Please check your email to verify your account.');
       },
       error: (error) => {
         this.loading = false;

@@ -45,8 +45,15 @@ $white: #fff;
   flex: 1;
   display: flex;
   flex-direction: column;
+  overflow: hidden;
 
-  
+  .card {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    margin-bottom: 0;
+    overflow: hidden;
+  }
 }
 
 .chat-selected .welcome-message {
@@ -720,7 +727,12 @@ body[data-layout-mode="dark"] {
 
 .chat-window {
   position: relative;
-  height: 100%;
+  flex: 1;
+  min-height: 0;
+
+  ngx-simplebar {
+    height: 100% !important;
+  }
 }
 
 .call-container {
@@ -762,3 +774,94 @@ body[data-layout-mode="dark"] {
     left: 0;
   }
 }
+
+/* Replies and Reactions */
+.reply-quote {
+  border-radius: 8px;
+  background: rgba($primary, 0.08) !important;
+  border-left: 4px solid $primary !important;
+  padding: 8px;
+  margin-bottom: 8px;
+  
+  p {
+    color: #666;
+    font-size: 12px;
+    margin: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+}
+
+.reply-preview-container {
+  background: #f8f9fa !important;
+  border-top: 1px solid #eee;
+  animation: slideUp 0.2s ease-out;
+  
+  h6 {
+    color: $primary;
+    font-weight: 600;
+  }
+}
+
+@keyframes slideUp {
+  from { transform: translateY(10px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+.reaction-pill {
+  transition: all 0.2s ease;
+  border: 1px solid #f1f1f1 !important;
+  padding: 3px 10px !important;
+  font-size: 12px !important;
+  background: #fff !important;
+  display: inline-flex;
+  align-items: center;
+  margin-right: 4px;
+  margin-bottom: 4px;
+  cursor: pointer;
+  
+  &:hover {
+    background: rgba($primary, 0.05) !important;
+    border-color: rgba($primary, 0.2) !important;
+  }
+  
+  &.active {
+    background: rgba($primary, 0.1) !important;
+    border-color: $primary !important;
+    color: $primary !important;
+  }
+
+  .reaction-count {
+    margin-left: 4px;
+    font-weight: 600;
+  }
+}
+
+.emoji-bar {
+  .emoji-option {
+    transition: transform 0.2s ease;
+    padding: 4px;
+    border-radius: 4px;
+    
+    &:hover {
+      transform: scale(1.3);
+      background: #f0f0f0;
+    }
+  }
+}
+
+.message-highlight {
+    animation: highlightPulse 2s ease-out;
+}
+
+@keyframes highlightPulse {
+    0% { background-color: rgba($primary, 0.45); }
+    100% { background-color: transparent; }
+}
+
+.cursor-pointer { cursor: pointer; }
+.font-size-12 { font-size: 12px; }
+.font-size-13 { font-size: 13px; }
+.bg-soft-primary { background-color: rgba($primary, 0.1); }
+

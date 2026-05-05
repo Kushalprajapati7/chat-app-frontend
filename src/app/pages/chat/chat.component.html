@@ -317,6 +317,12 @@
 
 
                             <li class="list-inline-item">
+                                <button class="btn nav-btn" (click)="toggleSearch()">
+                                    <i class="fa-solid fa-magnifying-glass"></i>
+                                </button>
+                            </li>
+
+                            <li class="list-inline-item">
                                 <div class="dropdown" ngbDropdown>
                                     <button class="btn nav-btn dropdown-toggle no-arrow" type="button"
                                         data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false"
@@ -338,12 +344,32 @@
                 </div>
             </div>
 
+            <div class="search-bar-container p-2 bg-light border-bottom d-flex align-items-center" *ngIf="showSearch">
+                <div class="input-group input-group-sm">
+                    <span class="input-group-text bg-transparent border-0"><i
+                            class="fa-solid fa-magnifying-glass font-size-13 text-muted"></i></span>
+                    <input type="text" [(ngModel)]="searchTerm" class="form-control border-0 bg-transparent font-size-13"
+                        placeholder="Search in this chat...">
+                    <button class="btn btn-link btn-sm text-muted py-0" (click)="toggleSearch()"><i
+                            class="fa-solid fa-xmark"></i></button>
+                </div>
+            </div>
+
 
             <div class="chat-window">
                 <ngx-simplebar class="chat-conversation p-3">
                     <div #chatWindow>
+                        <div #topElement style="height: 1px;"></div>
+                        
+                        <!-- Show a loading indicator when fetching older messages -->
+                        <div *ngIf="isFetchingOldMessages" class="text-center my-2">
+                            <div class="spinner-border spinner-border-sm text-primary" role="status">
+                                <span class="visually-hidden">Loading...</span>
+                            </div>
+                        </div>
+
                         <ul class="list-unstyled mb-0">
-                            <li *ngFor="let msg of messageArray"
+                            <li *ngFor="let msg of filteredMessages" [id]="'message-' + msg._id"
                                 [ngClass]="{ 'right': msg.user._id === authService.getLoggedInUser()._id }">
                                 <div class="conversation-list"
                                     [ngClass]="{ 'order-3': msg.user._id === authService.getLoggedInUser()._id }">
@@ -357,7 +383,11 @@
                                                 {{msg.user.username}}
                                             </span>
                                         </div>
-                                        <div class="ctext-wrap-content">
+                                        <div class="ctext-wrap-content" [class.message-highlight]="highlightedMessageId === msg._id">
+                                            <div class="reply-quote mb-2 p-2 border-start border-primary border-4 bg-soft-primary rounded cursor-pointer"
+                                                *ngIf="msg.replyTo && (msg.replyTo.content || msg.replyTo.type)" (click)="scrollToMessage(msg.replyTo._id)">
+                                                <p class="mb-0 text-truncate font-size-12">{{ msg.replyTo.content || msg.replyTo.type }}</p>
+                                            </div>
                                             <h5 class="conversation-name">
                                                 <a (click)="openUserProfile(msg.user._id)"
                                                     style="text-decoration: none; cursor: pointer;" class="user-name">
@@ -370,7 +400,7 @@
                                             </p>
                                             <div class="message-img mt-3 mb-0" *ngIf="msg.type === 'image'">
                                                 <a class="d-inline-block">
-                                                    <img [src]=" msg.fileUrl" alt="" class="rounded"
+                                                    <img [src]="msg.thumbnailUrl || msg.fileUrl" alt="" class="rounded"
                                                         (click)="openPreview(msg.fileUrl!, 'image')">
                                                 </a>
                                             </div>
@@ -401,6 +431,14 @@
                                                 <i class="fa-solid fa-file-pdf fa-3x text-danger me-2"></i>
                                                 <span class="text-primary">{{ msg.fileUrl?.split('/')?.pop() }}</span>
                                             </div>
+                                            <div class="reactions-display d-flex flex-wrap mt-2" *ngIf="msg.reactions?.length">
+                                                <span *ngFor="let emoji of getUniqueReactions(msg.reactions || [])"
+                                                    class="reaction-pill badge rounded-pill bg-light text-dark me-1"
+                                                    [class.active]="hasReacted(msg.reactions || [], emoji)" (click)="addReaction(msg._id, emoji)"
+                                                    style="cursor: pointer; border: 1px solid #eee;">
+                                                    {{ emoji }} <span class="ms-1">{{ getReactionCount(msg.reactions || [], emoji) }}</span>
+                                                </span>
+                                            </div>
                                         </div>
                                         <div class="dropdown align-self-start" ngbDropdown>
                                             <a class="dropdown-toggle no-arrow" href="javascript:void(0);" role="button"
@@ -409,6 +447,17 @@
                                                 <i class="fa-solid fa-ellipsis-vertical"></i>
                                             </a>
                                             <div class="dropdown-menu" ngbDropdownMenu>
+                                                <a class="dropdown-item" (click)="setReply(msg)">
+                                                    <i class="fa-solid fa-reply me-2 text-muted"></i> Reply
+                                                </a>
+                                                <div class="dropdown-divider"></div>
+                                                <div class="px-3 py-1 d-flex justify-content-between emoji-bar">
+                                                    <span *ngFor="let emoji of popularEmojis" (click)="addReaction(msg._id, emoji)" class="emoji-option"
+                                                        style="cursor: pointer; font-size: 18px; padding: 2px;">
+                                                        {{ emoji }}
+                                                    </span>
+                                                </div>
+                                                <div class="dropdown-divider"></div>
                                                 <a class="dropdown-item" (click)="onCopyMessage(msg)">Copy</a>
                                                 <a class="dropdown-item" (click)="saveMessage(msg)">Save</a>
                                                 <a class="dropdown-item" (click)="forwardMessage(msg)">Forward</a>
@@ -443,6 +492,16 @@
                 </ngx-simplebar>
             </div>
 
+
+            <div class="reply-preview-container bg-light p-2 border-top d-flex align-items-center" *ngIf="replyingTo">
+                <div class="flex-grow-1 border-start border-primary border-4 ps-2 overflow-hidden">
+                    <h6 class="text-primary mb-0 font-size-13">{{ replyingTo.user.username }}</h6>
+                    <p class="text-muted mb-0 text-truncate font-size-12">{{ replyingTo.content || replyingTo.type }}</p>
+                </div>
+                <button class="btn btn-sm text-muted" (click)="cancelReply()">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
 
             <form [formGroup]="formData" (ngSubmit)="sendMessage()"
                 class="chat-input-section input-container d-flex p-3 border-top bg-white align-items-center">

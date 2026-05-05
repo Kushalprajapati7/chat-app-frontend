@@ -15,6 +15,7 @@ export interface IConversation {
     userId: string;
     content: string;
     fileUrl: string;
+    thumbnailUrl: string;
     type: "text" | "image" | "video" | "audio" | "pdf";
     isRead: boolean;
     isDeleted: boolean;
