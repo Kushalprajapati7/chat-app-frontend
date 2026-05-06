@@ -64,11 +64,14 @@ export class RegisterComponent implements OnInit {
     this.authService.register(formData as any).subscribe({
       next: () => {
         this.loading = false;
-        this.router.navigate(['auth/login']);
-        this.alertService.success('Account created! Please check your email to verify your account.');
+        this.alertService.close();
+        this.router.navigate(['auth/login']).then(() => {
+          this.alertService.success('Account created successfully!');
+        });
       },
       error: (error) => {
         this.loading = false;
+        this.alertService.close();
         this.alertService.error(error || 'Registration failed. Please try again.');
       },
     }
